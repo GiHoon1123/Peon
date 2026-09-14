@@ -1545,12 +1545,41 @@ function DnsRecordField({
   value,
   onCopy,
   copyEnabled = true,
+  emphasis = false,
 }: {
   label: string;
   value: string;
   onCopy?: () => void;
   copyEnabled?: boolean;
+  /** Highlight fields users actually need to copy (host, value) over ones they rarely touch (type, ttl). */
+  emphasis?: boolean;
 }) {
+  if (emphasis) {
+    return (
+      <div className="border-phosphor-dim bg-phosphor/5 hover:bg-phosphor/10 min-w-0 space-y-1.5 rounded-md border px-3 py-3 transition-colors">
+        <div className="text-phosphor/80 font-mono text-[10px] font-semibold tracking-wide uppercase">
+          {label}
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <span className="text-foreground min-w-0 break-all font-mono text-[14.5px] font-semibold leading-snug">
+            {value}
+          </span>
+          {onCopy && copyEnabled ? (
+            <button
+              type="button"
+              onClick={onCopy}
+              className="text-phosphor bg-phosphor/10 hover:bg-phosphor/20 flex shrink-0 items-center gap-1.5 rounded px-2 py-1 text-[11px] font-medium transition-colors"
+              title={`Copy ${label}`}
+            >
+              <Copy className="size-3.5" />
+              Copy
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-secondary/40 min-w-0 space-y-1 rounded-md border px-3 py-2.5">
       <div className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">{label}</div>
@@ -1596,16 +1625,21 @@ function DnsGuide({ serverIp, domain }: { serverIp?: string | null; domain?: str
             <span className="text-foreground break-all font-mono">{host}</span>
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <DnsRecordField label="Type" value="A" onCopy={() => copy('A')} />
-          <DnsRecordField label="Name / Host" value={sub} onCopy={() => copy(sub)} />
-          <DnsRecordField
-            label="Value / Points to"
-            value={ip}
-            onCopy={() => serverIp && copy(serverIp)}
-            copyEnabled={!!serverIp}
-          />
-          <DnsRecordField label="TTL" value={ttl} onCopy={() => copy(ttl)} />
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <DnsRecordField label="Name / Host" value={sub} onCopy={() => copy(sub)} emphasis />
+            <DnsRecordField
+              label="Value / Points to"
+              value={ip}
+              onCopy={() => serverIp && copy(serverIp)}
+              copyEnabled={!!serverIp}
+              emphasis
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <DnsRecordField label="Type" value="A" onCopy={() => copy('A')} />
+            <DnsRecordField label="TTL" value={ttl} onCopy={() => copy(ttl)} />
+          </div>
         </div>
       </div>
 
