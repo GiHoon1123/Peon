@@ -93,7 +93,7 @@ export default function DashboardPage() {
           contentClassName={servers?.length ? undefined : 'flex flex-col p-4'}
           actions={
             <Button size="sm" onClick={() => setAddServerOpen(true)}>
-              <Plus className="size-3.5" /> Create server
+              <Plus className="size-3.5" /> Add server
             </Button>
           }
         >
