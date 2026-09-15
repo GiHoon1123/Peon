@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { FolderKanban, Server, GitBranch, Database, ArrowRight, Boxes, KeyRound } from 'lucide-react';
+import { FolderKanban, Server, GitBranch, Database, ArrowRight, Boxes, KeyRound, Plus } from 'lucide-react';
 import { PageContainer, Panel } from '@/components/app/page';
 import { StatCard } from '@/components/app/stat-card';
 import { EmptyState } from '@/components/app/empty-state';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/app/status-badge';
+import { AddServerModal } from '@/components/app/add-server-modal';
 import { useAuthStore } from '@/store/auth';
 import { listProjects } from '@/services/api/project';
 import { listServers } from '@/services/api/server';
@@ -20,6 +24,7 @@ const QUICK_LINKS = [
 
 export default function DashboardPage() {
   const { currentWorkspaceId } = useAuthStore();
+  const [addServerOpen, setAddServerOpen] = useState(false);
 
   const { data: projects } = useQuery({
     queryKey: ['projects', currentWorkspaceId],
@@ -76,40 +81,54 @@ export default function DashboardPage() {
         />
       </div>
 
+      <AddServerModal
+        workspaceId={currentWorkspaceId ?? ''}
+        open={addServerOpen}
+        onOpenChange={setAddServerOpen}
+      />
+
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Panel
-          title="projects"
-          contentClassName={projects?.length ? undefined : 'flex flex-col p-4'}
+          title="servers"
+          contentClassName={servers?.length ? undefined : 'flex flex-col p-4'}
+          actions={
+            <Button size="sm" onClick={() => setAddServerOpen(true)}>
+              <Plus className="size-3.5" /> Add server
+            </Button>
+          }
         >
-          {projects?.length ? (
+          {servers?.length ? (
             <div className="divide-y">
-              {projects.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/projects/${p.id}`}
-                  className="hover:bg-secondary flex items-center justify-between gap-4 px-4 py-3 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <div className="text-[12.5px] font-semibold">{p.name}</div>
-                    <div className="text-muted-foreground truncate text-[11px]">
-                      {p.description || 'no description'}
+              {servers.map((s) => {
+                const status = !s.isReachable
+                  ? { label: 'Offline', tone: 'destructive' as const }
+                  : s.isUsable
+                    ? { label: 'Ready', tone: 'success' as const }
+                    : { label: 'Needs setup', tone: 'warning' as const };
+
+                return (
+                  <Link
+                    key={s.id}
+                    href={`/servers/${s.id}`}
+                    className="hover:bg-secondary flex items-center justify-between gap-4 px-4 py-3 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[12.5px] font-semibold">{s.name}</div>
+                      <div className="text-muted-foreground truncate text-[11px]">{s.ip}</div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-muted-foreground text-[11px]">
-                      <b className="text-foreground">{p._count?.services ?? 0}</b>{' '}
-                      {(p._count?.services ?? 0) === 1 ? 'service' : 'services'}
-                    </span>
-                    <ArrowRight className="text-faint size-3.5" />
-                  </div>
-                </Link>
-              ))}
+                    <div className="flex shrink-0 items-center gap-3">
+                      <StatusBadge status={status.label} tone={status.tone} />
+                      <ArrowRight className="text-faint size-3.5" />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <EmptyState
-              icon={FolderKanban}
-              title="No projects yet"
-              description="create your first project to start deploying."
+              icon={Server}
+              title="No servers yet"
+              description="add a linux host over ssh to start deploying."
               className="flex flex-1 flex-col items-center justify-center py-8"
             />
           )}
