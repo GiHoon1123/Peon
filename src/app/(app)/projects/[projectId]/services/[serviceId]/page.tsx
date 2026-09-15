@@ -1540,11 +1540,75 @@ function DomainsField({
   );
 }
 
+function DnsRecordField({
+  label,
+  value,
+  onCopy,
+  copyEnabled = true,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  onCopy?: () => void;
+  copyEnabled?: boolean;
+  /** Highlight fields users actually need to copy (host, value) over ones they rarely touch (type, ttl). */
+  emphasis?: boolean;
+}) {
+  if (emphasis) {
+    return (
+      <div className="border-phosphor-dim bg-phosphor/5 hover:bg-phosphor/10 min-w-0 space-y-1.5 rounded-md border px-3 py-3 transition-colors">
+        <div className="text-phosphor/80 font-mono text-[10px] font-semibold tracking-wide uppercase">
+          {label}
+        </div>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <span className="text-foreground min-w-0 break-all font-mono text-[14.5px] font-semibold leading-snug">
+            {value}
+          </span>
+          {onCopy && copyEnabled ? (
+            <button
+              type="button"
+              onClick={onCopy}
+              className="text-phosphor bg-phosphor/10 hover:bg-phosphor/20 flex shrink-0 items-center gap-1.5 rounded px-2 py-1 text-[11px] font-medium transition-colors"
+              title={`Copy ${label}`}
+            >
+              <Copy className="size-3.5" />
+              Copy
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-secondary/40 min-w-0 space-y-1 rounded-md border px-3 py-2.5">
+      <div className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">{label}</div>
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <span className="text-foreground min-w-0 break-all font-mono text-[12.5px] leading-relaxed">
+          {value}
+        </span>
+        {onCopy && copyEnabled ? (
+          <button
+            type="button"
+            onClick={onCopy}
+            className="text-muted-foreground hover:text-phosphor shrink-0 transition-colors"
+            title={`Copy ${label}`}
+          >
+            <Copy className="size-3.5" />
+            <span className="sr-only">Copy {label}</span>
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function DnsGuide({ serverIp, domain }: { serverIp?: string | null; domain?: string }) {
   const host = domain?.replace(/^https?:\/\//, '').split('/')[0] || 'app.example.com';
   const parts = host.split('.');
   const sub = parts.length > 2 ? parts.slice(0, -2).join('.') : '@';
   const ip = serverIp || '<your-server-ip>';
+  const ttl = 'Auto / 300';
 
   const copy = (text: string) => {
     void navigator.clipboard.writeText(text);
@@ -1552,74 +1616,68 @@ function DnsGuide({ serverIp, domain }: { serverIp?: string | null; domain?: str
   };
 
   return (
-    <DocCallout title="How do I point my domain here?">
-      <p>
-        Create this record at your DNS provider (Cloudflare, Namecheap, GoDaddy, …) for{' '}
-        <span className="text-foreground break-all font-mono">{host}</span>:
-      </p>
-      <div className="min-w-0 overflow-x-auto">
-        <table className="w-full min-w-105 text-left">
-          <thead className="text-muted-foreground font-mono text-[10.5px] uppercase tracking-wide">
-            <tr>
-              <th className="py-1 pr-4">Type</th>
-              <th className="py-1 pr-4">Name / Host</th>
-              <th className="py-1 pr-4">Value / Points to</th>
-              <th className="py-1">TTL</th>
-            </tr>
-          </thead>
-          <tbody className="text-foreground font-mono text-[12px]">
-            <tr>
-              <td className="py-1 pr-4">A</td>
-              <td className="py-1 pr-4">{sub}</td>
-              <td className="py-1 pr-4">
-                <button
-                  type="button"
-                  onClick={() => serverIp && copy(serverIp)}
-                  className="hover:text-phosphor inline-flex items-center gap-1.5 transition-colors"
-                  title="Copy IP"
-                >
-                  {ip}
-                  {serverIp && <Copy className="size-3" />}
-                </button>
-              </td>
-              <td className="py-1">Auto / 300</td>
-            </tr>
-          </tbody>
-        </table>
+    <div className="space-y-3">
+      <div className="border-border bg-card space-y-3 rounded-lg border p-3">
+        <div className="space-y-0.5">
+          <div className="text-[12.5px] font-semibold">DNS record</div>
+          <p className="text-muted-foreground text-[11.5px] leading-relaxed">
+            Create this record at your DNS provider for{' '}
+            <span className="text-foreground break-all font-mono">{host}</span>
+          </p>
+        </div>
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <DnsRecordField label="Name / Host" value={sub} onCopy={() => copy(sub)} emphasis />
+            <DnsRecordField
+              label="Value / Points to"
+              value={ip}
+              onCopy={() => serverIp && copy(serverIp)}
+              copyEnabled={!!serverIp}
+              emphasis
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <DnsRecordField label="Type" value="A" onCopy={() => copy('A')} />
+            <DnsRecordField label="TTL" value={ttl} onCopy={() => copy(ttl)} />
+          </div>
+        </div>
       </div>
-      <DocBullets>
-        <li>
-          The value must be the public IP of the server this service is deployed to
-          {serverIp ? '' : ' — assign a server first to see it here'}.
-        </li>
-        <li>
-          Hosting many services on this server? Add a wildcard record instead (
-          <span className="font-mono">*</span> → <span className="font-mono break-all">{ip}</span>) and every
-          subdomain will just work.
-        </li>
-        <li>
-          Using Cloudflare? Set the record to <b>DNS only</b> (grey cloud) until the first deploy
-          completes, so the HTTPS certificate can be issued.
-        </li>
-        <li>
-          HTTPS is automatic — a Let&apos;s Encrypt certificate is issued on the first request once DNS
-          resolves. Propagation usually takes a few minutes.
-        </li>
-      </DocBullets>
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <span className="shrink-0">Verify:</span>
-        <button
-          type="button"
-          onClick={() => copy(`dig +short ${host}`)}
-          className="bg-secondary hover:text-phosphor inline-flex max-w-full items-center gap-1.5 rounded px-2 py-1 font-mono text-[11.5px] transition-colors"
-          title="Copy command"
-        >
-          <span className="min-w-0 break-all">dig +short {host}</span>
-          <Copy className="size-3 shrink-0" />
-        </button>
-        <span className="break-all">should print {ip}</span>
-      </div>
-    </DocCallout>
+
+      <DocCallout title="Need help pointing your domain?">
+        <DocBullets>
+          <li>
+            The value must be the public IP of the server this service is deployed to
+            {serverIp ? '' : ' — assign a server first to see it here'}.
+          </li>
+          <li>
+            Hosting many services on this server? Add a wildcard record instead (
+            <span className="font-mono">*</span> →{' '}
+            <span className="font-mono break-all">{ip}</span>) and every subdomain will just work.
+          </li>
+          <li>
+            Using Cloudflare? Set the record to <b>DNS only</b> (grey cloud) until the first deploy
+            completes, so the HTTPS certificate can be issued.
+          </li>
+          <li>
+            HTTPS is automatic — a Let&apos;s Encrypt certificate is issued on the first request once
+            DNS resolves. Propagation usually takes a few minutes.
+          </li>
+        </DocBullets>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="shrink-0">Verify:</span>
+          <button
+            type="button"
+            onClick={() => copy(`dig +short ${host}`)}
+            className="bg-secondary hover:text-phosphor inline-flex max-w-full items-center gap-1.5 rounded px-2 py-1 font-mono text-[11.5px] transition-colors"
+            title="Copy command"
+          >
+            <span className="min-w-0 break-all">dig +short {host}</span>
+            <Copy className="size-3 shrink-0" />
+          </button>
+          <span className="break-all">should print {ip}</span>
+        </div>
+      </DocCallout>
+    </div>
   );
 }
 
