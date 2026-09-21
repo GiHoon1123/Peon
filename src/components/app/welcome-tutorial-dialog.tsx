@@ -26,7 +26,10 @@ export function WelcomeTutorialDialog() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // localStorage is only available client-side; reading it during render
+    // (as the lint rule suggests) would cause a hydration mismatch.
     if (shouldShowWelcomeTutorial()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(true);
     }
   }, []);

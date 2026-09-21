@@ -329,7 +329,7 @@ export function InAppSubscribeForm({
             },
           }
         : null,
-    [clientSecret, user?.name],
+    [clientSecret, user],
   );
 
   const startMut = useMutation({
