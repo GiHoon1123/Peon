@@ -4,6 +4,7 @@ import {
   dismissWelcomeTutorial,
   markWelcomeTutorialPending,
   shouldShowWelcomeTutorial,
+  subscribeWelcomeTutorial,
 } from '@/lib/welcome-tutorial';
 
 describe('welcome tutorial storage', () => {
@@ -11,7 +12,10 @@ describe('welcome tutorial storage', () => {
 
   beforeEach(() => {
     store.clear();
-    vi.stubGlobal('window', {});
+    vi.stubGlobal('window', {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
     vi.stubGlobal('localStorage', {
       getItem: (key: string) => store.get(key) ?? null,
       setItem: (key: string, value: string) => {
@@ -39,5 +43,20 @@ describe('welcome tutorial storage', () => {
     dismissWelcomeTutorial();
     expect(shouldShowWelcomeTutorial()).toBe(false);
     expect(store.get(WELCOME_TUTORIAL_STORAGE_KEY)).toBe('0');
+  });
+
+  it('notifies subscribers when the flag changes', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeWelcomeTutorial(onChange);
+
+    markWelcomeTutorialPending();
+    expect(onChange).toHaveBeenCalledTimes(1);
+
+    dismissWelcomeTutorial();
+    expect(onChange).toHaveBeenCalledTimes(2);
+
+    unsubscribe();
+    markWelcomeTutorialPending();
+    expect(onChange).toHaveBeenCalledTimes(2);
   });
 });

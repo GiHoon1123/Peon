@@ -306,13 +306,15 @@ export function InAppSubscribeForm({
     return `${window.location.origin}${returnPath}`;
   }, [returnPath]);
 
+  const userName = user?.name;
+
   const checkoutElementsOptions = useMemo(
     () =>
       clientSecret
         ? {
             clientSecret,
-            defaultValues: user?.name
-              ? { billingAddress: { name: user.name, address: { country: 'US' } } }
+            defaultValues: userName
+              ? { billingAddress: { name: userName, address: { country: 'US' } } }
               : undefined,
             elementsOptions: {
               savedPaymentMethod: {
@@ -329,7 +331,7 @@ export function InAppSubscribeForm({
             },
           }
         : null,
-    [clientSecret, user?.name],
+    [clientSecret, userName],
   );
 
   const startMut = useMutation({

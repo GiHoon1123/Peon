@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Modal,
@@ -13,7 +13,9 @@ import {
 } from '@/components/app/modal';
 import {
   dismissWelcomeTutorial,
+  getWelcomeTutorialServerSnapshot,
   shouldShowWelcomeTutorial,
+  subscribeWelcomeTutorial,
 } from '@/lib/welcome-tutorial';
 
 const YOUTUBE_VIDEO_ID = 's-o9yqc1SUc';
@@ -23,17 +25,14 @@ const YOUTUBE_VIDEO_ID = 's-o9yqc1SUc';
  * Triggered via localStorage flag set in the onboarding finish flow.
  */
 export function WelcomeTutorialDialog() {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (shouldShowWelcomeTutorial()) {
-      setOpen(true);
-    }
-  }, []);
+  const open = useSyncExternalStore(
+    subscribeWelcomeTutorial,
+    shouldShowWelcomeTutorial,
+    getWelcomeTutorialServerSnapshot,
+  );
 
   const dismiss = () => {
     dismissWelcomeTutorial();
-    setOpen(false);
   };
 
   return (
@@ -41,7 +40,6 @@ export function WelcomeTutorialDialog() {
       open={open}
       onOpenChange={(next) => {
         if (!next) dismiss();
-        else setOpen(true);
       }}
     >
       <ModalContent size="xl" className="sm:max-w-3xl">
