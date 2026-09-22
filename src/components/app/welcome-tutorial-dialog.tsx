@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Modal,
@@ -13,40 +13,26 @@ import {
 } from '@/components/app/modal';
 import {
   dismissWelcomeTutorial,
+  getWelcomeTutorialServerSnapshot,
   shouldShowWelcomeTutorial,
+  subscribeWelcomeTutorial,
 } from '@/lib/welcome-tutorial';
 
 const YOUTUBE_VIDEO_ID = 's-o9yqc1SUc';
 
-function subscribeNoop() {
-  return () => {};
-}
-
-function getServerSnapshot() {
-  return false;
-}
-
 /**
  * One-shot YouTube tutorial after a user completes onboarding.
  * Triggered via localStorage flag set in the onboarding finish flow.
- *
- * Uses useSyncExternalStore (not an effect) to read the localStorage flag:
- * it safely renders `false` on the server/first client paint and only
- * reflects the real value after hydration, avoiding a hydration mismatch
- * without manually calling setState in an effect.
  */
 export function WelcomeTutorialDialog() {
-  const shouldShow = useSyncExternalStore(
-    subscribeNoop,
+  const open = useSyncExternalStore(
+    subscribeWelcomeTutorial,
     shouldShowWelcomeTutorial,
-    getServerSnapshot,
+    getWelcomeTutorialServerSnapshot,
   );
-  const [dismissed, setDismissed] = useState(false);
-  const open = shouldShow && !dismissed;
 
   const dismiss = () => {
     dismissWelcomeTutorial();
-    setDismissed(true);
   };
 
   return (
