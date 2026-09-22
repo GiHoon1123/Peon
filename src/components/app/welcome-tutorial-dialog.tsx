@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Modal,
@@ -18,25 +18,35 @@ import {
 
 const YOUTUBE_VIDEO_ID = 's-o9yqc1SUc';
 
+function subscribeNoop() {
+  return () => {};
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
 /**
  * One-shot YouTube tutorial after a user completes onboarding.
  * Triggered via localStorage flag set in the onboarding finish flow.
+ *
+ * Uses useSyncExternalStore (not an effect) to read the localStorage flag:
+ * it safely renders `false` on the server/first client paint and only
+ * reflects the real value after hydration, avoiding a hydration mismatch
+ * without manually calling setState in an effect.
  */
 export function WelcomeTutorialDialog() {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    // localStorage is only available client-side; reading it during render
-    // (as the lint rule suggests) would cause a hydration mismatch.
-    if (shouldShowWelcomeTutorial()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpen(true);
-    }
-  }, []);
+  const shouldShow = useSyncExternalStore(
+    subscribeNoop,
+    shouldShowWelcomeTutorial,
+    getServerSnapshot,
+  );
+  const [dismissed, setDismissed] = useState(false);
+  const open = shouldShow && !dismissed;
 
   const dismiss = () => {
     dismissWelcomeTutorial();
-    setOpen(false);
+    setDismissed(true);
   };
 
   return (
@@ -44,7 +54,6 @@ export function WelcomeTutorialDialog() {
       open={open}
       onOpenChange={(next) => {
         if (!next) dismiss();
-        else setOpen(true);
       }}
     >
       <ModalContent size="xl" className="sm:max-w-3xl">
