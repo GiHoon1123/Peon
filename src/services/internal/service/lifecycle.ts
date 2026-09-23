@@ -357,7 +357,10 @@ export async function update(serviceId: string, input: UpdateServiceInput) {
     where: { id: serviceId },
     select: {
       serverId: true,
+      name: true,
+      dockerComposeRaw: true,
       destinationId: true,
+      settings: { select: { isRawComposeDeploymentEnabled: true } },
       project: { select: { workspaceId: true } },
     },
   });
@@ -403,7 +406,13 @@ export async function update(serviceId: string, input: UpdateServiceInput) {
     where: { id: serviceId },
     data: serviceData as Prisma.ServiceUpdateInput,
   });
-  if (input.serverId !== undefined && input.serverId !== existing.serverId) {
+  const runtimeContextChanged =
+    (input.serverId !== undefined && input.serverId !== existing.serverId) ||
+    (input.name !== undefined && input.name !== existing.name) ||
+    (input.dockerComposeRaw !== undefined && input.dockerComposeRaw !== existing.dockerComposeRaw) ||
+    (input.isRawComposeDeploymentEnabled !== undefined &&
+      input.isRawComposeDeploymentEnabled !== existing.settings?.isRawComposeDeploymentEnabled);
+  if (runtimeContextChanged) {
     ServiceRuntime.invalidate(serviceId);
   }
   if (Object.keys(settingsData).length > 0) {

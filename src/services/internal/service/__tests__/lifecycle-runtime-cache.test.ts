@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const findUnique = vi.fn();
 const update = vi.fn();
 const invalidate = vi.fn();
+const upsert = vi.fn();
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: { service: { findUnique, update } },
+  prisma: { service: { findUnique, update }, serviceSetting: { upsert } },
 }));
 vi.mock('@/lib/auth/workspace-resources', () => ({
   assertBindingsInWorkspace: vi.fn(),
@@ -25,9 +26,13 @@ describe('service lifecycle runtime context', () => {
     findUnique.mockReset();
     update.mockReset();
     invalidate.mockReset();
+    upsert.mockReset();
     findUnique.mockResolvedValue({
       serverId: 'server-a',
+      name: 'app',
+      dockerComposeRaw: null,
       destinationId: null,
+      settings: { isRawComposeDeploymentEnabled: false },
       project: { workspaceId: 'workspace-1' },
     });
     update.mockResolvedValue({ name: 'app' });
@@ -47,5 +52,15 @@ describe('service lifecycle runtime context', () => {
     await setServer('service-1', 'server-b');
 
     expect(invalidate).toHaveBeenCalledWith('service-1');
+  });
+
+  it('invalidates the context when container selection inputs change', async () => {
+    const { update: updateService } = await import('../lifecycle');
+
+    await updateService('service-1', { name: 'new-name' });
+    await updateService('service-1', { dockerComposeRaw: 'services: {}' });
+    await updateService('service-1', { isRawComposeDeploymentEnabled: true });
+
+    expect(invalidate).toHaveBeenCalledTimes(3);
   });
 });
